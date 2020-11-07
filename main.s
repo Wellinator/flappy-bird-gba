@@ -19,6 +19,13 @@
 @ -fmath-errno -ftrapping-math -mapcs -mapcs-frame -mapcs-32 -msoft-float
 @ -mthumb-interwork -mlong-calls
 
+	.global	__gba_multiboot
+	.data
+	.align	2
+	.type	__gba_multiboot, %object
+	.size	__gba_multiboot, 4
+__gba_multiboot:
+	.word	1
 	.global	bg_Palette
 	.section	.rodata
 	.align	1
@@ -35318,21 +35325,6 @@ bird_x:
 	.size	bird_y, 4
 bird_y:
 	.space	4
-	.global	pipes_x
-	.data
-	.align	2
-	.type	pipes_x, %object
-	.size	pipes_x, 4
-pipes_x:
-	.word	464
-	.global	pipes_y
-	.bss
-	.global	pipes_y
-	.align	2
-	.type	pipes_y, %object
-	.size	pipes_y, 4
-pipes_y:
-	.space	4
 	.global	frames
 	.global	frames
 	.align	2
@@ -35395,6 +35387,14 @@ rand_pipe_x:
 	.word	240
 	.word	330
 	.word	420
+	.global	paused
+	.bss
+	.global	paused
+	.align	2
+	.type	paused, %object
+	.size	paused, 4
+paused:
+	.space	4
 	.text
 	.align	2
 	.global	main
@@ -35410,12 +35410,16 @@ main:
 	ldr	r3, .L5
 	mov	lr, pc
 	bx	r3
-	ldr	r2, .L5+4
+	mov	r0, #0
+	ldr	r3, .L5+4
+	mov	lr, pc
+	bx	r3
+	ldr	r2, .L5+8
 	mov	lr, pc
 	bx	r2
-	ldr	r0, .L5+8
+	ldr	r0, .L5+12
 	mov	r1, #256
-	ldr	r3, .L5+12
+	ldr	r3, .L5+16
 	mov	lr, pc
 	bx	r3
 	mov	r4, #0
@@ -35427,8 +35431,8 @@ main:
 	mov	r3, r4
 	str	ip, [sp, #28]
 	str	lr, [sp, #32]
-	ldr	ip, .L5+16
-	ldr	r0, .L5+20
+	ldr	ip, .L5+20
+	ldr	r0, .L5+24
 	str	r5, [sp, #0]
 	str	r4, [sp, #4]
 	str	r4, [sp, #8]
@@ -35438,14 +35442,14 @@ main:
 	str	r4, [sp, #24]
 	mov	lr, pc
 	bx	ip
-	ldr	r3, .L5+24
-	ldr	r2, .L5+28
+	ldr	r3, .L5+28
+	ldr	r2, .L5+32
 	strb	r0, [r3, #0]	@  bird
 	mov	lr, pc
 	bx	r2
 	mov	r0, r4
-	ldr	r1, .L5+32
-	ldr	r3, .L5+36
+	ldr	r1, .L5+36
+	ldr	r3, .L5+40
 	mov	lr, pc
 	bx	r3
 .L2:
@@ -35454,6 +35458,7 @@ main:
 	.align	2
 .L5:
 	.word	ham_Init
+	.word	ham_InitText
 	.word	setBackGrounds
 	.word	sprites_Palette
 	.word	ham_LoadObjPal
@@ -35472,53 +35477,64 @@ vbl_func:
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
-	stmfd	sp!, {r4, fp, ip, lr, pc}
-	ldr	r4, .L9
-	ldrb	r3, [r4, #0]	@ zero_extendqisi2	@  vbl_count
-	add	r3, r3, #1
+	stmfd	sp!, {r4, r5, fp, ip, lr, pc}
+	ldr	r3, .L12
 	sub	fp, ip, #4
-	ldr	r2, .L9+4
-	strb	r3, [r4, #0]	@  vbl_count
-	mov	lr, pc
-	bx	r2
-	ldr	r3, .L9+8
 	mov	lr, pc
 	bx	r3
-	ldr	r2, .L9+12
+	ldr	r2, .L12+4
+	ldr	r4, [r2, #0]	@  paused
+	cmp	r4, #0
+	ldr	r5, .L12+8
+	beq	.L11
+.L7:
+	ldmea	fp, {r4, r5, fp, sp, lr}
+	bx	lr
+.L11:
+	ldrb	r3, [r5, #0]	@ zero_extendqisi2	@  vbl_count
+	add	r3, r3, #1
+	ldr	r2, .L12+12
+	strb	r3, [r5, #0]	@  vbl_count
 	mov	lr, pc
 	bx	r2
-	ldr	r3, .L9+16
+	ldr	r3, .L12+16
 	mov	lr, pc
 	bx	r3
-	ldr	r2, .L9+20
+	ldr	r2, .L12+20
 	mov	lr, pc
 	bx	r2
-	ldr	r3, .L9+24
+	ldr	r3, .L12+24
 	mov	lr, pc
 	bx	r3
-	ldr	r2, .L9+28
+	ldr	r2, .L12+28
 	mov	lr, pc
 	bx	r2
-	ldr	r1, .L9+32
-	ldrb	r2, [r4, #0]	@ zero_extendqisi2	@  vbl_count
+	ldr	r3, .L12+32
+	mov	lr, pc
+	bx	r3
+	ldr	r2, .L12+36
+	mov	lr, pc
+	bx	r2
+	ldr	r1, .L12+40
+	ldrb	r2, [r5, #0]	@ zero_extendqisi2	@  vbl_count
 	ldr	r3, [r1, #0]	@  frames
 	cmp	r2, #59
 	add	r3, r3, #1
 	str	r3, [r1, #0]	@  frames
-	moveq	r3, #0
-	streqb	r3, [r4, #0]	@  vbl_count
-	ldmea	fp, {r4, fp, sp, lr}
-	bx	lr
-.L10:
+	streqb	r4, [r5, #0]	@  vbl_count
+	b	.L7
+.L13:
 	.align	2
-.L9:
+.L12:
+	.word	query_buttons
+	.word	paused
 	.word	vbl_count
 	.word	ham_CopyObjToOAM
-	.word	query_buttons
 	.word	update_bird_gfx
 	.word	move_bird
 	.word	pipesMover
 	.word	update_bird
+	.word	checkCollisions
 	.word	moveGround
 	.word	frames
 	.size	vbl_func, .-vbl_func
@@ -35536,79 +35552,82 @@ query_buttons:
 	ldrh	r3, [r2, #0]
 	mvn	r3, r3
 	tst	r3, #32
-	ldrne	r2, .L25
-	ldrne	r3, [r2, #0]	@  scrollx
+	ldrne	r2, .L28
+	ldrne	r3, [r2, #0]	@  bird_x
 	sub	fp, ip, #4
-	addne	r3, r3, #1
-	bne	.L23
+	subne	r3, r3, #1
+	bne	.L26
 	ldrh	r3, [r2, #0]
 	mvn	r3, r3
 	tst	r3, #16
-	beq	.L13
-	ldr	r2, .L25
-	ldr	r3, [r2, #0]	@  scrollx
-	sub	r3, r3, #1
-.L23:
-	str	r3, [r2, #0]	@  scrollx
-.L13:
+	beq	.L16
+	ldr	r2, .L28
+	ldr	r3, [r2, #0]	@  bird_x
+	add	r3, r3, #1
+.L26:
+	str	r3, [r2, #0]	@  bird_x
+.L16:
 	mov	r2, #67108864
 	add	r2, r2, #304
 	ldrh	r3, [r2, #0]
 	mvn	r3, r3
 	tst	r3, #128
-	ldrne	r2, .L25+4
-	ldrne	r3, [r2, #0]	@  scrolly
+	ldrne	r2, .L28+4
+	ldrne	r3, [r2, #0]	@  bird_y
 	addne	r3, r3, #1
-	bne	.L24
+	bne	.L27
 	ldrh	r3, [r2, #0]
 	mvn	r3, r3
 	tst	r3, #64
-	beq	.L16
-	ldr	r2, .L25+4
-	ldr	r3, [r2, #0]	@  scrolly
+	beq	.L19
+	ldr	r2, .L28+4
+	ldr	r3, [r2, #0]	@  bird_y
 	sub	r3, r3, #1
-.L24:
-	str	r3, [r2, #0]	@  scrolly
-.L16:
-	mov	r0, #67108864
-	add	r0, r0, #304
-	ldrh	r3, [r0, #0]
+.L27:
+	str	r3, [r2, #0]	@  bird_y
+.L19:
+	mov	r1, #67108864
+	add	r1, r1, #304
+	ldrh	r3, [r1, #0]
 	mvn	r3, r3
 	tst	r3, #8
-	ldrne	r2, .L25+4
-	ldrne	r1, .L25
-	movne	r3, #64
-	strne	r3, [r2, #0]	@  scrolly
-	strne	r3, [r1, #0]	@  scrollx
-	ldrh	r3, [r0, #0]
+	beq	.L21
+	ldr	r2, .L28+8
+	ldr	r3, [r2, #0]	@  paused
+	cmp	r3, #0
+	movne	r3, #0
+	moveq	r3, #1
+	str	r3, [r2, #0]	@  paused
+.L21:
+	ldrh	r3, [r1, #0]
 	mvn	r3, r3
 	tst	r3, #1
-	beq	.L11
-	ldr	r4, .L25+8
+	beq	.L14
+	ldr	r4, .L28+4
 	ldr	r3, [r4, #0]	@  bird_y
 	cmp	r3, #0
-	ble	.L20
-	ldr	r2, .L25+12
+	ble	.L23
+	ldr	r2, .L28+12
 	mov	lr, pc
 	bx	r2
 	ldr	r3, [r4, #0]	@  bird_y
 	sub	r3, r3, #7
 	cmp	r3, #0
 	str	r3, [r4, #0]	@  bird_y
-	blt	.L20
-.L11:
+	blt	.L23
+.L14:
 	ldmea	fp, {r4, fp, sp, lr}
 	bx	lr
-.L20:
+.L23:
 	mov	r3, #0
 	str	r3, [r4, #0]	@  bird_y
-	b	.L11
-.L26:
+	b	.L14
+.L29:
 	.align	2
-.L25:
-	.word	scrollx
-	.word	scrolly
+.L28:
+	.word	bird_x
 	.word	bird_y
+	.word	paused
 	.word	birdDown
 	.size	query_buttons, .-query_buttons
 	.align	2
@@ -35623,32 +35642,32 @@ setBackGrounds:
 	sub	fp, ip, #4
 	sub	sp, sp, #16
 	mov	r0, #1
-	ldr	r3, .L28
+	ldr	r3, .L31
 	mov	lr, pc
 	bx	r3
-	ldr	r0, .L28+4
+	ldr	r0, .L31+4
 	mov	r1, #256
-	ldr	r3, .L28+8
+	ldr	r3, .L31+8
 	mov	lr, pc
 	bx	r3
 	mov	r2, #1
-	ldr	r6, .L28+12
+	ldr	r6, .L31+12
 	mov	r3, r2
 	mov	r1, #12288
-	ldr	r0, .L28+16
+	ldr	r0, .L31+16
 	mov	lr, pc
 	bx	r6
-	ldr	r5, .L28+20
+	ldr	r5, .L31+20
 	mov	ip, r0
 	mov	r2, #1
 	mov	r3, r2
 	str	ip, [r5, #4]	@  <variable>.ti
 	mov	r1, #288
-	ldr	r0, .L28+24
+	ldr	r0, .L31+24
 	mov	lr, pc
 	bx	r6
 	mov	r3, r0
-	ldr	r4, .L28+28
+	ldr	r4, .L31+28
 	str	r3, [r5, #24]	@  <variable>.ti
 	mov	r1, #0
 	mov	r0, #3
@@ -35665,16 +35684,16 @@ setBackGrounds:
 	mov	lr, #20
 	mov	r6, r0
 	str	r6, [r5, #20]	@  <variable>.mi
-	ldr	r7, .L28+32
+	ldr	r7, .L31+32
 	mov	r1, ip
 	mov	r2, lr
 	mov	r3, r4
-	ldr	r0, .L28+36
+	ldr	r0, .L31+36
 	stmia	sp, {r4, ip, lr}	@ phole stm
 	str	r4, [sp, #12]
 	mov	lr, pc
 	bx	r7
-	ldr	r6, .L28+40
+	ldr	r6, .L31+40
 	mov	lr, #32
 	mov	ip, #64
 	mov	r5, r0
@@ -35682,19 +35701,19 @@ setBackGrounds:
 	mov	r2, lr
 	mov	r1, ip
 	mov	r3, r4
-	ldr	r0, .L28+44
+	ldr	r0, .L31+44
 	stmia	sp, {r4, ip, lr}	@ phole stm
 	str	r4, [sp, #12]
 	mov	lr, pc
 	bx	r7
-	ldr	r5, .L28+48
+	ldr	r5, .L31+48
 	mov	ip, r0
 	str	ip, [r5, #0]	@  bg_ground
 	ldr	r0, [r6, #0]	@  bg_day
 	mov	r1, r4
 	mov	r2, r4
 	mov	r3, r4
-	ldr	r6, .L28+52
+	ldr	r6, .L31+52
 	mov	lr, pc
 	bx	r6
 	ldr	r0, [r5, #0]	@  bg_ground
@@ -35707,7 +35726,7 @@ setBackGrounds:
 	mov	r0, r4
 	mov	r3, r1
 	mov	r2, #3
-	ldr	r5, .L28+56
+	ldr	r5, .L31+56
 	mov	lr, pc
 	bx	r5
 	mov	r0, #1
@@ -35718,9 +35737,9 @@ setBackGrounds:
 	bx	r5
 	ldmea	fp, {r4, r5, r6, r7, fp, sp, lr}
 	bx	lr
-.L29:
+.L32:
 	.align	2
-.L28:
+.L31:
 	.word	ham_SetBgMode
 	.word	bg_Palette
 	.word	ham_LoadBGPal
@@ -35746,9 +35765,9 @@ moveGround:
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	stmfd	sp!, {fp, ip, lr, pc}
-	ldr	r3, .L33
+	ldr	r3, .L36
 	sub	fp, ip, #4
-	ldr	ip, .L33+4
+	ldr	ip, .L36+4
 	ldr	r1, [r3, #0]	@  frames
 	ldr	r3, [ip, #0]	@  ground_x
 	cmp	r1, #1
@@ -35756,19 +35775,19 @@ moveGround:
 	mov	r2, #0
 	mov	r0, r1
 	str	r3, [ip, #0]	@  ground_x
-	beq	.L32
-.L30:
+	beq	.L35
+.L33:
 	ldmea	fp, {fp, sp, lr}
 	bx	lr
-.L32:
+.L35:
 	ldrh	r1, [ip, #0]	@  ground_x
-	ldr	r3, .L33+8
+	ldr	r3, .L36+8
 	mov	lr, pc
 	bx	r3
-	b	.L30
-.L34:
+	b	.L33
+.L37:
 	.align	2
-.L33:
+.L36:
 	.word	frames
 	.word	ground_x
 	.word	ham_SetBgXY
@@ -35782,21 +35801,21 @@ update_bird:
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	stmfd	sp!, {fp, ip, lr, pc}
-	ldr	r3, .L36
-	ldr	r2, .L36+4
+	ldr	r3, .L39
+	ldr	r2, .L39+4
 	ldrb	r0, [r3, #0]	@ zero_extendqisi2	@  bird
-	ldr	r3, .L36+8
+	ldr	r3, .L39+8
 	ldrh	r1, [r2, #0]	@  bird_x
 	sub	fp, ip, #4
 	ldrh	r2, [r3, #0]	@  bird_y
-	ldr	r3, .L36+12
+	ldr	r3, .L39+12
 	mov	lr, pc
 	bx	r3
 	ldmea	fp, {fp, sp, lr}
 	bx	lr
-.L37:
+.L40:
 	.align	2
-.L36:
+.L39:
 	.word	bird
 	.word	bird_x
 	.word	bird_y
@@ -35810,23 +35829,23 @@ move_bird:
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 0, uses_anonymous_args = 0
 	@ link register save eliminated.
-	ldr	r3, .L42
+	ldr	r3, .L45
 	ldr	r2, [r3, #0]	@  frames
 	cmp	r2, #1
 	@ lr needed for prologue
-	ldr	r1, .L42+4
-	beq	.L41
-.L39:
+	ldr	r1, .L45+4
+	beq	.L44
+.L42:
 	b	update_bird
-.L41:
+.L44:
 	ldr	r3, [r1, #0]	@  bird_y
 	add	r2, r3, #5
 	cmp	r3, #114
 	strle	r2, [r1, #0]	@  bird_y
-	b	.L39
-.L43:
+	b	.L42
+.L46:
 	.align	2
-.L42:
+.L45:
 	.word	frames
 	.word	bird_y
 	.size	move_bird, .-move_bird
@@ -35841,12 +35860,12 @@ pipesGenerator:
 	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
 	sub	fp, ip, #4
 	sub	sp, sp, #36
-	ldr	r8, .L45
-	ldr	r7, .L45+4
+	ldr	r8, .L48
+	ldr	r7, .L48+4
 	mov	r4, #0
 	ldrh	ip, [r8, #0]	@  rand_pipe_x
 	mov	r5, #1
-	ldr	r9, .L45+8
+	ldr	r9, .L48+8
 	mov	r1, #2
 	mov	r2, #3
 	mov	r3, r4
@@ -35862,7 +35881,7 @@ pipesGenerator:
 	str	r4, [sp, #32]
 	mov	lr, pc
 	bx	r9
-	ldr	ip, .L45+12
+	ldr	ip, .L48+12
 	mov	r6, r0
 	ldrh	lr, [r8, #4]	@  rand_pipe_x
 	strb	r6, [ip, #0]	@  pipeDownSpt0
@@ -35881,7 +35900,7 @@ pipesGenerator:
 	str	r4, [sp, #32]
 	mov	lr, pc
 	bx	r9
-	ldr	ip, .L45+16
+	ldr	ip, .L48+16
 	mov	r6, r0
 	ldrh	lr, [r8, #8]	@  rand_pipe_x
 	strb	r6, [ip, #0]	@  pipeDownSpt1
@@ -35900,12 +35919,12 @@ pipesGenerator:
 	str	r4, [sp, #32]
 	mov	lr, pc
 	bx	r9
-	ldr	sl, .L45+20
-	ldr	ip, .L45+24
+	ldr	sl, .L48+20
+	ldr	ip, .L48+24
 	mov	r6, r0
 	ldrh	lr, [r8, #0]	@  rand_pipe_x
 	strb	r6, [ip, #0]	@  pipeDownSpt2
-	mov	r7, #96
+	mov	r7, #110
 	mov	r1, #2
 	mov	r2, #3
 	mov	r3, r4
@@ -35921,7 +35940,7 @@ pipesGenerator:
 	str	r7, [sp, #32]
 	mov	lr, pc
 	bx	r9
-	ldr	ip, .L45+28
+	ldr	ip, .L48+28
 	mov	r6, r0
 	ldrh	lr, [r8, #4]	@  rand_pipe_x
 	strb	r6, [ip, #0]	@  pipeUpSpt0
@@ -35940,7 +35959,7 @@ pipesGenerator:
 	str	r7, [sp, #32]
 	mov	lr, pc
 	bx	r9
-	ldr	ip, .L45+32
+	ldr	ip, .L48+32
 	mov	r6, r0
 	ldrh	lr, [r8, #8]	@  rand_pipe_x
 	strb	r6, [ip, #0]	@  pipeUpSpt1
@@ -35959,13 +35978,13 @@ pipesGenerator:
 	str	r4, [sp, #24]
 	mov	lr, pc
 	bx	r9
-	ldr	r3, .L45+36
+	ldr	r3, .L48+36
 	strb	r0, [r3, #0]	@  pipeUpSpt2
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
-.L46:
+.L49:
 	.align	2
-.L45:
+.L48:
 	.word	rand_pipe_x
 	.word	pipe_down_Bitmap
 	.word	ham_CreateObj
@@ -35986,38 +36005,38 @@ pipesMover:
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	stmfd	sp!, {r4, r5, r6, fp, ip, lr, pc}
-	ldr	r3, .L57
+	ldr	r3, .L60
 	ldr	r2, [r3, #0]	@  frames
 	cmp	r2, #1
 	sub	fp, ip, #4
-	beq	.L53
-.L47:
+	beq	.L56
+.L50:
 	ldmea	fp, {r4, r5, r6, fp, sp, lr}
 	bx	lr
-.L53:
-	ldr	r5, .L57+4
+.L56:
+	ldr	r5, .L60+4
 	ldr	r3, [r5, #0]	@  rand_pipe_x
 	cmn	r3, #32
-	ldrgt	r6, .L57+8
-	ble	.L54
-.L49:
+	ldrgt	r6, .L60+8
+	ble	.L57
+.L52:
 	ldr	r3, [r5, #4]	@  rand_pipe_x
 	cmn	r3, #32
-	ble	.L55
-.L50:
+	ble	.L58
+.L53:
 	ldr	r3, [r5, #8]	@  rand_pipe_x
 	cmn	r3, #32
-	ble	.L56
-.L51:
-	ldr	r3, .L57+12
-	ldr	r4, .L57+16
+	ble	.L59
+.L54:
+	ldr	r3, .L60+12
+	ldr	r4, .L60+16
 	ldrb	r0, [r3, #0]	@ zero_extendqisi2	@  pipeDownSpt0
 	ldrh	r1, [r5, #0]	@  rand_pipe_x
 	ldrh	r2, [r6, #0]	@  rand_pipe_y
 	mov	lr, pc
 	bx	r4
 	ldrh	r2, [r6, #0]	@  rand_pipe_y
-	ldr	r3, .L57+20
+	ldr	r3, .L60+20
 	add	r2, r2, #110
 	mov	r2, r2, asl #16
 	ldrb	r0, [r3, #0]	@ zero_extendqisi2	@  pipeUpSpt0
@@ -36025,14 +36044,14 @@ pipesMover:
 	mov	r2, r2, lsr #16
 	mov	lr, pc
 	bx	r4
-	ldr	r3, .L57+24
+	ldr	r3, .L60+24
 	ldrh	r1, [r5, #4]	@  rand_pipe_x
 	ldrb	r0, [r3, #0]	@ zero_extendqisi2	@  pipeDownSpt1
 	ldrh	r2, [r6, #4]	@  rand_pipe_y
 	mov	lr, pc
 	bx	r4
 	ldrh	r2, [r6, #4]	@  rand_pipe_y
-	ldr	r3, .L57+28
+	ldr	r3, .L60+28
 	add	r2, r2, #110
 	mov	r2, r2, asl #16
 	ldrb	r0, [r3, #0]	@ zero_extendqisi2	@  pipeUpSpt1
@@ -36040,14 +36059,14 @@ pipesMover:
 	mov	r2, r2, lsr #16
 	mov	lr, pc
 	bx	r4
-	ldr	r3, .L57+32
+	ldr	r3, .L60+32
 	ldrh	r1, [r5, #8]	@  rand_pipe_x
 	ldrb	r0, [r3, #0]	@ zero_extendqisi2	@  pipeDownSpt2
 	ldrh	r2, [r6, #8]	@  rand_pipe_y
 	mov	lr, pc
 	bx	r4
 	ldrh	r2, [r6, #8]	@  rand_pipe_y
-	ldr	r3, .L57+36
+	ldr	r3, .L60+36
 	add	r2, r2, #110
 	mov	r2, r2, asl #16
 	ldrb	r0, [r3, #0]	@ zero_extendqisi2	@  pipeUpSpt2
@@ -36063,41 +36082,41 @@ pipesMover:
 	str	r3, [r5, #8]	@  rand_pipe_x
 	str	r2, [r5, #0]	@  rand_pipe_x
 	str	r1, [r5, #4]	@  rand_pipe_x
-	b	.L47
-.L56:
+	b	.L50
+.L59:
 	mov	r3, #240
 	mvn	r0, #36
 	mov	r1, #0
 	str	r3, [r5, #8]	@  rand_pipe_x
-	ldr	r2, .L57+40
+	ldr	r2, .L60+40
 	mov	lr, pc
 	bx	r2
 	str	r0, [r6, #8]	@  rand_pipe_y
-	b	.L51
-.L55:
+	b	.L54
+.L58:
 	mov	r3, #240
 	mvn	r0, #36
 	mov	r1, #0
 	str	r3, [r5, #4]	@  rand_pipe_x
-	ldr	r2, .L57+40
+	ldr	r2, .L60+40
 	mov	lr, pc
 	bx	r2
 	str	r0, [r6, #4]	@  rand_pipe_y
-	b	.L50
-.L54:
+	b	.L53
+.L57:
 	mov	r3, #240
 	mvn	r0, #36
 	mov	r1, #0
 	str	r3, [r5, #0]	@  rand_pipe_x
-	ldr	r2, .L57+40
+	ldr	r2, .L60+40
 	mov	lr, pc
 	bx	r2
-	ldr	r6, .L57+8
+	ldr	r6, .L60+8
 	str	r0, [r6, #0]	@  rand_pipe_y
-	b	.L49
-.L58:
+	b	.L52
+.L61:
 	.align	2
-.L57:
+.L60:
 	.word	frames
 	.word	rand_pipe_x
 	.word	rand_pipe_y
@@ -36119,31 +36138,6 @@ birdUp:
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	stmfd	sp!, {fp, ip, lr, pc}
-	ldr	r3, .L60
-	sub	fp, ip, #4
-	ldrb	r0, [r3, #0]	@ zero_extendqisi2	@  bird
-	ldr	r1, .L60+4
-	ldr	r3, .L60+8
-	mov	lr, pc
-	bx	r3
-	ldmea	fp, {fp, sp, lr}
-	bx	lr
-.L61:
-	.align	2
-.L60:
-	.word	bird
-	.word	flappy_up_Bitmap
-	.word	ham_UpdateObjGfx
-	.size	birdUp, .-birdUp
-	.align	2
-	.global	birdMid
-	.type	birdMid, %function
-birdMid:
-	@ Function supports interworking.
-	@ args = 0, pretend = 0, frame = 0
-	@ frame_needed = 1, uses_anonymous_args = 0
-	mov	ip, sp
-	stmfd	sp!, {fp, ip, lr, pc}
 	ldr	r3, .L63
 	sub	fp, ip, #4
 	ldrb	r0, [r3, #0]	@ zero_extendqisi2	@  bird
@@ -36157,13 +36151,13 @@ birdMid:
 	.align	2
 .L63:
 	.word	bird
-	.word	flappy_mid_Bitmap
+	.word	flappy_up_Bitmap
 	.word	ham_UpdateObjGfx
-	.size	birdMid, .-birdMid
+	.size	birdUp, .-birdUp
 	.align	2
-	.global	birdDown
-	.type	birdDown, %function
-birdDown:
+	.global	birdMid
+	.type	birdMid, %function
+birdMid:
 	@ Function supports interworking.
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
@@ -36182,6 +36176,31 @@ birdDown:
 	.align	2
 .L66:
 	.word	bird
+	.word	flappy_mid_Bitmap
+	.word	ham_UpdateObjGfx
+	.size	birdMid, .-birdMid
+	.align	2
+	.global	birdDown
+	.type	birdDown, %function
+birdDown:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 1, uses_anonymous_args = 0
+	mov	ip, sp
+	stmfd	sp!, {fp, ip, lr, pc}
+	ldr	r3, .L69
+	sub	fp, ip, #4
+	ldrb	r0, [r3, #0]	@ zero_extendqisi2	@  bird
+	ldr	r1, .L69+4
+	ldr	r3, .L69+8
+	mov	lr, pc
+	bx	r3
+	ldmea	fp, {fp, sp, lr}
+	bx	lr
+.L70:
+	.align	2
+.L69:
+	.word	bird
 	.word	flappy_down_Bitmap
 	.word	ham_UpdateObjGfx
 	.size	birdDown, .-birdDown
@@ -36194,50 +36213,219 @@ update_bird_gfx:
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	stmfd	sp!, {r4, r5, fp, ip, lr, pc}
-	ldr	r2, .L78
+	ldr	r2, .L81
 	ldr	r3, [r2, #0]	@  frames
 	cmp	r3, #2
 	sub	fp, ip, #4
-	ldr	r4, .L78+4
+	ldr	r4, .L81+4
 	mov	r5, #0
-	bls	.L68
+	bls	.L71
 	ldr	r3, [r4, #0]	@  animcnt
 	cmp	r3, r5
 	str	r5, [r2, #0]	@  frames
-	beq	.L75
-.L70:
-	cmp	r3, #1
-	beq	.L76
-.L71:
-	cmp	r3, #2
-	beq	.L77
+	beq	.L78
 .L73:
+	cmp	r3, #1
+	beq	.L79
+.L74:
+	cmp	r3, #2
+	beq	.L80
+.L76:
 	add	r3, r3, #1
 	str	r3, [r4, #0]	@  animcnt
-.L68:
+.L71:
 	ldmea	fp, {r4, r5, fp, sp, lr}
 	bx	lr
-.L77:
+.L80:
 	bl	birdDown
 	ldr	r3, [r4, #0]	@  animcnt
 	cmp	r3, #2
 	streq	r5, [r4, #0]	@  animcnt
-	bne	.L73
-	b	.L68
-.L76:
+	bne	.L76
+	b	.L71
+.L79:
 	bl	birdMid
 	ldr	r3, [r4, #0]	@  animcnt
-	b	.L71
-.L75:
+	b	.L74
+.L78:
 	bl	birdUp
 	ldr	r3, [r4, #0]	@  animcnt
-	b	.L70
-.L79:
+	b	.L73
+.L82:
 	.align	2
-.L78:
+.L81:
 	.word	frames
 	.word	animcnt
 	.size	update_bird_gfx, .-update_bird_gfx
+	.align	2
+	.global	collided
+	.type	collided, %function
+collided:
+	@ Function supports interworking.
+	@ args = 16, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	stmfd	sp!, {r4, lr}
+	ldr	lr, [sp, #8]	@  x2,  x2
+	ldr	ip, [sp, #16]	@  w2,  w2
+	add	ip, lr, ip	@  x2,  w2
+	cmp	r0, ip	@  x1
+	ldr	r4, [sp, #12]	@  y2,  y2
+	mov	ip, r1	@  y1
+	add	r0, r0, r2	@  x1,  w1
+	mov	r1, r3	@  h1
+	mov	r2, #0	@  x1
+	bge	.L84
+	ldr	r3, [sp, #20]	@  h2,  h2
+	cmp	lr, r0	@  x2
+	add	r3, r4, r3	@  y2,  h2
+	bge	.L84
+	cmp	ip, r3	@  y1
+	add	r1, ip, r1	@  y1,  h1
+	bge	.L84
+	cmp	r4, r1	@  y2
+	movge	r2, #0	@  x1
+	movlt	r2, #1	@  x1
+.L84:
+	mov	r0, r2	@  x1
+	ldmfd	sp!, {r4, lr}
+	bx	lr
+	.size	collided, .-collided
+	.section	.rodata.str1.4,"aMS",%progbits,1
+	.align	2
+.LC1:
+	.ascii	"Not Colided!\000"
+	.align	2
+.LC0:
+	.ascii	"Colided!\000"
+	.text
+	.align	2
+	.global	checkCollisions
+	.type	checkCollisions, %function
+checkCollisions:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 8
+	@ frame_needed = 1, uses_anonymous_args = 0
+	mov	ip, sp
+	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
+	ldr	r3, .L90
+	sub	sp, sp, #24
+	sub	fp, ip, #4
+	ldr	r3, [r3, #0]	@  bird_y
+	str	r3, [fp, #-44]
+	ldr	r3, .L90+4
+	ldr	r6, .L90+8
+	ldr	r5, [r3, #0]	@  bird_x
+	ldr	r7, .L90+12
+	ldr	r3, [fp, #-44]
+	ldr	r2, [r6, #0]	@  rand_pipe_x
+	add	r4, r3, #2
+	ldr	ip, [r7, #0]	@  rand_pipe_y
+	add	r8, r2, #3
+	mov	sl, #26
+	mov	r9, #64
+	mov	r0, r5
+	mov	r1, r4
+	mov	r2, #16
+	mov	r3, #12
+	stmia	sp, {r8, ip}	@ phole stm
+	str	sl, [sp, #8]
+	str	r9, [sp, #12]
+	bl	collided
+	cmp	r0, #0
+	bne	.L87
+	ldr	r3, [r6, #4]	@  rand_pipe_x
+	ldr	ip, [r7, #4]	@  rand_pipe_y
+	add	r3, r3, #3
+	str	r3, [fp, #-48]
+	str	ip, [sp, #4]
+	ldr	ip, [fp, #-48]
+	mov	r0, r5
+	mov	r1, r4
+	mov	r2, #16
+	mov	r3, #12
+	str	ip, [sp, #0]
+	str	sl, [sp, #8]
+	str	r9, [sp, #12]
+	bl	collided
+	cmp	r0, #0
+	bne	.L87
+	ldr	r3, [r6, #8]	@  rand_pipe_x
+	ldr	ip, [r7, #8]	@  rand_pipe_y
+	add	r6, r3, #3
+	mov	r0, r5
+	mov	r1, r4
+	mov	r2, #16
+	mov	r3, #12
+	stmia	sp, {r6, ip}	@ phole stm
+	str	sl, [sp, #8]
+	str	r9, [sp, #12]
+	bl	collided
+	cmp	r0, #0
+	bne	.L87
+	ldr	ip, [r7, #0]	@  rand_pipe_y
+	mov	r0, r5
+	add	ip, ip, #110
+	mov	r1, r4
+	mov	r2, #16
+	mov	r3, #12
+	stmia	sp, {r8, ip}	@ phole stm
+	str	sl, [sp, #8]
+	str	r9, [sp, #12]
+	bl	collided
+	cmp	r0, #0
+	bne	.L87
+	ldr	ip, [r7, #4]	@  rand_pipe_y
+	ldr	lr, [fp, #-48]
+	add	ip, ip, #110
+	mov	r0, r5
+	mov	r1, r4
+	mov	r2, #16
+	mov	r3, #12
+	str	lr, [sp, #0]
+	str	ip, [sp, #4]
+	str	sl, [sp, #8]
+	str	r9, [sp, #12]
+	bl	collided
+	cmp	r0, #0
+	bne	.L87
+	ldr	ip, [r7, #8]	@  rand_pipe_y
+	mov	r0, r5
+	add	ip, ip, #110
+	mov	r1, r4
+	mov	r2, #16
+	mov	r3, #12
+	stmia	sp, {r6, ip}	@ phole stm
+	str	sl, [sp, #8]
+	str	r9, [sp, #12]
+	bl	collided
+	cmp	r0, #0
+	bne	.L87
+	ldr	r3, [fp, #-44]
+	cmp	r3, #114
+	movle	r1, r0
+	ldrle	r2, .L90+16
+	ble	.L89
+.L87:
+	mov	r0, #0
+	ldr	r2, .L90+20
+	mov	r1, r0
+.L89:
+	ldr	r3, .L90+24
+	mov	lr, pc
+	bx	r3
+	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
+	bx	lr
+.L91:
+	.align	2
+.L90:
+	.word	bird_y
+	.word	bird_x
+	.word	rand_pipe_x
+	.word	rand_pipe_y
+	.word	.LC1
+	.word	.LC0
+	.word	ham_DrawText
+	.size	checkCollisions, .-checkCollisions
 	.global	__divsi3
 	.align	2
 	.global	random
@@ -36250,14 +36438,14 @@ random:
 	stmfd	sp!, {r4, r5, r6, r7, fp, ip, lr, pc}
 	sub	fp, ip, #4
 	mov	r5, r0	@  min
-	ldr	r0, .L81
+	ldr	r0, .L93
 	mov	r4, r1	@  max
 	mov	lr, pc
 	bx	r0
 	rsb	r4, r5, r4	@  min,  max
 	add	r4, r4, #1	@  max
 	mov	r7, r0	@  min
-	ldr	r6, .L81+4
+	ldr	r6, .L93+4
 	mov	r1, r4	@  max
 	mvn	r0, #-2147483648
 	mov	lr, pc
@@ -36270,9 +36458,9 @@ random:
 	mov	r0, r5	@  min
 	ldmea	fp, {r4, r5, r6, r7, fp, sp, lr}
 	bx	lr
-.L82:
+.L94:
 	.align	2
-.L81:
+.L93:
 	.word	rand
 	.word	__divsi3
 	.size	random, .-random

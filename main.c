@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+MULTIBOOT
+
 //Graphics Includes
 //Backgrounds
 #include "gfx/bg/bg.pal.c"
@@ -34,8 +36,6 @@ u8 groundPart0, groundPart1, groundPart2, groundPart3;
 u8 vbl_count = 0; // Keeps track of the number of VBLs
 int bird_x = 61;  // X position of bird (column)
 int bird_y = 0;   // Y position of bird (row)
-int pipes_x = 464;   // X position of pipe (column)
-int pipes_y = 0;     // Y position of pipe (row)
 u32 frames = 0;   // Global frame counter
 u32 animcnt = 0;  // Current frame of animation
 u32 ground_x = 0;  // Ground X coordinate
@@ -45,6 +45,7 @@ u32 zoomx = 256; // X co-ordinate of zoom center
 u32 zoomy = 256; // Y co-ordinate of zoom center
 int rand_pipe_y[3] = {0, -32, -16};
 int rand_pipe_x[3] = {240, 240 + 90, 240 + 180};
+int paused = 0;//Paused false
 
 map_fragment_info_ptr bg_day;
 map_fragment_info_ptr bg_ground;
@@ -56,7 +57,6 @@ void move_bird();       // Drop the block
 void update_bird();     // Apply block's new position
 void query_buttons();   // Query for input
 void setBgDay();
-void setBgNight();
 void birdUp();
 void birdMid();
 void birdDown();
@@ -68,12 +68,18 @@ void pipesGenerator();
 void setPipesBeforeGround();
 void pipesMover();
 int random();
+void checkCollisions();
+int collided();
+
 
 // Function: main()
 int main()
 {
     // Initialize HAMlib
     ham_Init();
+    
+    //Initialize the HAM DrawText system
+    ham_InitText(0);
 
     //Set Background day
     setBackGrounds();
@@ -100,32 +106,39 @@ int main()
 } // End of main()
 
 void vbl_func(){
-    // Increment VBL counter
-    ++vbl_count;
-
-    // Copy sprites to hardware
-    ham_CopyObjToOAM();
-	
-    // Process the following every VBL
+    
     query_buttons(); // Query for input
-    update_bird_gfx(); // Apply bird's new graphic
-    move_bird(); // Drop the bird
-    pipesMover(); // Move pipe from right to left
-    update_bird(); // Apply bird's new position
     
-    
-    moveGround(); //Move Ground
-    
-    // Rotate the background
-	//ham_RotBgEx(0,frames%360,120,80,scrollx,scrolly,zoomx,zoomy);
+    if(!paused){
+        // Increment VBL counter
+        ++vbl_count;
 
-    ++frames; // Increment the frame counter
-    
-    if(vbl_count == 59){
-        vbl_count = 0; // Reset the VBL counter
+        // Copy sprites to hardware
+        ham_CopyObjToOAM();
+    	
+        // Process the following every VBL
+        update_bird_gfx(); // Apply bird's new graphic
+        move_bird(); // Drop the bird
+        pipesMover(); // Move pipe from right to left
+        update_bird(); // Apply bird's new position
+
+        checkCollisions();//Check if bird cillided to other elements;
+
+        moveGround(); //Move Ground
+
+        // Rotate the background
+    	//ham_RotBgEx(0,frames%360,120,80,scrollx,scrolly,zoomx,zoomy);
+
+        ++frames; // Increment the frame counter
+
+        if(vbl_count == 59){
+            vbl_count = 0; // Reset the VBL counter
+        }
+
+        return;
+    }else{
+        return;
     }
-    
-    return;
 } // End of vbl_func()
 
 void query_buttons(){
@@ -134,34 +147,31 @@ void query_buttons(){
     // the map should be scrolled
     if(F_CTRLINPUT_LEFT_PRESSED)
     {
-      ++scrollx;
+      --bird_x;
     }
     else
     if(F_CTRLINPUT_RIGHT_PRESSED)
     {
-      --scrollx;
+      ++bird_x;
     }
 
     if(F_CTRLINPUT_DOWN_PRESSED)
     {
-      ++scrolly;
+      ++bird_y;
     }
     else
     if(F_CTRLINPUT_UP_PRESSED)
     {
-      --scrolly;
+      --bird_y;
     }
     if (F_CTRLINPUT_START_PRESSED) {
-    	scrollx = 64;
-    	scrolly = 64;
+    	paused = !paused;//Pause and Unpause
 	}
     
     if(F_CTRLINPUT_A_PRESSED)
     {
         if (bird_y > 0){
-            
             birdDown();
-            
             bird_y = bird_y - 7;
             if (bird_y < 0) bird_y = 0;
         }else{
@@ -228,9 +238,9 @@ void pipesGenerator(){
     pipeDownSpt1 = ham_CreateObj((void*)pipe_down_Bitmap, OBJ_SIZE_32X64 , OBJ_MODE_NORMAL ,1,0,0,0,0,1,0,rand_pipe_x[1], 0);
     pipeDownSpt2 = ham_CreateObj((void*)pipe_down_Bitmap, OBJ_SIZE_32X64 , OBJ_MODE_NORMAL,1,0,0,0,0,1,0,rand_pipe_x[2], 0);
     
-    pipeUpSpt0 = ham_CreateObj((void*)pipe_up_Bitmap, OBJ_SIZE_32X64 , OBJ_MODE_NORMAL,1,0,0,0,0,1,0,rand_pipe_x[0], 96 );
-    pipeUpSpt1 = ham_CreateObj((void*)pipe_up_Bitmap, OBJ_SIZE_32X64 , OBJ_MODE_NORMAL,1,0,0,0,0,1,0,rand_pipe_x[1], 96 );
-    pipeUpSpt2 = ham_CreateObj((void*)pipe_up_Bitmap, OBJ_SIZE_32X64 , OBJ_MODE_NORMAL,1,0,0,0,0,1,0,rand_pipe_x[2], 96 );
+    pipeUpSpt0 = ham_CreateObj((void*)pipe_up_Bitmap, OBJ_SIZE_32X64 , OBJ_MODE_NORMAL,1,0,0,0,0,1,0,rand_pipe_x[0], 110 );
+    pipeUpSpt1 = ham_CreateObj((void*)pipe_up_Bitmap, OBJ_SIZE_32X64 , OBJ_MODE_NORMAL,1,0,0,0,0,1,0,rand_pipe_x[1], 110 );
+    pipeUpSpt2 = ham_CreateObj((void*)pipe_up_Bitmap, OBJ_SIZE_32X64 , OBJ_MODE_NORMAL,1,0,0,0,0,1,0,rand_pipe_x[2], 110 );
     
     return;
 }
@@ -303,6 +313,37 @@ void update_bird_gfx()
         }
     }
     return;
+}
+
+int collided(
+    int x1,
+    int y1,
+    int w1,
+    int h1,
+    int x2,
+    int y2,
+    int w2,
+    int h2
+){
+    return x1 < ( x2 + w2 ) && x2 < (x1 + w1) && y1 < ( y2 + h2 ) && y2 < ( y1 + h1 );
+}
+
+void checkCollisions(){
+     if(
+        collided( bird_x, bird_y + 2, 16, 12, rand_pipe_x[0] + 3, rand_pipe_y[0], 26, 64) ||
+        collided( bird_x, bird_y + 2, 16, 12, rand_pipe_x[1] + 3, rand_pipe_y[1], 26, 64) ||
+        collided( bird_x, bird_y + 2, 16, 12, rand_pipe_x[2] + 3, rand_pipe_y[2], 26, 64) ||
+        
+        collided( bird_x, bird_y + 2, 16, 12, rand_pipe_x[0] + 3, rand_pipe_y[0] + 110, 26, 64) ||
+        collided( bird_x, bird_y + 2, 16, 12, rand_pipe_x[1] + 3, rand_pipe_y[1] + 110, 26, 64) ||
+        collided( bird_x, bird_y + 2, 16, 12, rand_pipe_x[2] + 3, rand_pipe_y[2] + 110, 26, 64) ||
+        
+        bird_y >= 115
+    ){
+        ham_DrawText(0,0,"Colided: False");
+    }else{
+        ham_DrawText(0,0,"Colided: True");
+    }
 }
 
 int random(int min, int max){
