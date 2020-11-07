@@ -8,8 +8,6 @@
 #include "gfx/bg/bg.pal.c"
 #include "gfx/bg/bg_day.raw.c"
 #include "gfx/bg/bg_day.map.c"
-//#include "gfx/bg/bg_night.raw.c"
-//#include "gfx/bg/bg_night.map.c"
 #include "gfx/bg/ground.raw.c"
 #include "gfx/bg/ground.map.c"
 
@@ -115,15 +113,15 @@ void vbl_func(){
     pipesMover(); // Move pipe from right to left
     update_bird(); // Apply bird's new position
     
-    //Move Ground
-    moveGround();
+    
+    moveGround(); //Move Ground
     
     // Rotate the background
 	//ham_RotBgEx(0,frames%360,120,80,scrollx,scrolly,zoomx,zoomy);
 
     ++frames; // Increment the frame counter
     
-    if(vbl_count == 60){
+    if(vbl_count == 59){
         vbl_count = 0; // Reset the VBL counter
     }
     
@@ -191,12 +189,12 @@ void setBackGrounds(){
 
     // Setup the map for our image
     ham_bg[0].mi = ham_InitMapEmptySet(3,0);
-    ham_bg[1].mi = ham_InitMapEmptySet(3,0);
+    ham_bg[1].mi = ham_InitMapEmptySet(1,0);
 
     bg_day = ham_InitMapFragment(
         (void*)bg_day_Map,30,20,0,0,30,20,0);
     bg_ground = ham_InitMapFragment(
-        (void*)ground_Map,30,20,0,0,30,20,0);
+        (void*)ground_Map,64,32,0,0,64,32,0);
 
     ham_InsertMapFragment(bg_day,0,0,0);
     ham_InsertMapFragment(bg_ground,1,0,0);
@@ -208,7 +206,7 @@ void setBackGrounds(){
 
 void moveGround(){
     ground_x += 1;
-    ham_InsertMapFragment(bg_ground,1,ground_x,0);
+    if( frames == 1 ) ham_SetBgXY(1,ground_x,0);
     return;
 }
 
@@ -219,7 +217,7 @@ void update_bird(){
 void move_bird(){
     // Check if 5 VBLs have passed
     if (frames == 1) {
-        if (bird_y < 105) bird_y = bird_y + 5;// Drop
+        if (bird_y < 116) bird_y = bird_y + 5;// Drop
     }
     update_bird();
     return;
