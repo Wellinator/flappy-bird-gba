@@ -24,6 +24,11 @@ MULTIBOOT
 #include "gfx/sprites/pipe_down.raw.c"
 //Sprite - Ground
 #include "gfx/sprites/ground.raw.c"
+//Sprite - Main MENU
+#include "gfx/sprites/flappy_name.raw.c"
+#include "gfx/sprites/bird_name.raw.c"
+#include "gfx/sprites/pointer.raw.c"
+#include "gfx/sprites/btn_start.raw.c"
 // -----------------------------------------------------------------------------
 // Defines
 // -----------------------------------------------------------------------------
@@ -46,16 +51,18 @@ u32 zoomy = 256; // Y co-ordinate of zoom center
 int rand_pipe_y[3] = {0, -32, -16};
 int rand_pipe_x[3] = {240, 240 + 90, 240 + 180};
 int paused = 0;//Paused false
-
+int in_menu = 1; //Indicate if in MAIN MENU
 map_fragment_info_ptr bg_day;
 map_fragment_info_ptr bg_ground;
 
 
 // Function Prototypes
-void vbl_func();        // VBL function
+void mainMenu();
+void start();        // VBL function
 void move_bird();       // Drop the block
 void update_bird();     // Apply block's new position
 void query_buttons();   // Query for input
+void query_menu_buttons();
 void setBgDay();
 void birdUp();
 void birdMid();
@@ -68,18 +75,24 @@ void pipesGenerator();
 void setPipesBeforeGround();
 void pipesMover();
 int random();
-void checkCollisions();
+int checkCollisions();
 int collided();
+int setBirdSprite();
+void startGame();
+void gameOver();
+void renderMenu();
 
+
+
+
+
+//Program START -----------------------------------------------------------------------------
 
 // Function: main()
 int main()
 {
     // Initialize HAMlib
     ham_Init();
-    
-    //Initialize the HAM DrawText system
-    ham_InitText(0);
 
     //Set Background day
     setBackGrounds();
@@ -87,17 +100,11 @@ int main()
     //Create bird sprite
     // Initialize the sprites palette
     ham_LoadObjPal((void*)sprites_Palette, 256);
-    
-    // Create the sprite and store the object number
-    bird = ham_CreateObj((void*)flappy_up_Bitmap, OBJ_SIZE_16X16 , OBJ_MODE_NORMAL,1,0,0,0,0,0,0,110,50);
-    pipesGenerator();
-    //ham_SetFxMode(BIT2, BIT4, FX_MODE_ALPHABLEND);
 
-    //Set ground sprites
-    //setGround();
-
-    // Start the VBL interrupt handler
-    ham_StartIntHandler(INT_TYPE_VBL,(void*)&vbl_func);
+    // Start the VBL interrupt handler to Main Menu
+    in_menu = 1;
+    renderMenu();
+    ham_StartIntHandler(INT_TYPE_VBL,(void*)&mainMenu);
 
     // Infinite loop to keep the program running
     while(1) {}
@@ -105,7 +112,71 @@ int main()
     return 0;
 } // End of main()
 
-void vbl_func(){
+
+
+void startGame(){
+    //Start the game
+    in_menu = 0;
+    
+    //Clear the sprites in the screen
+    ham_ResetObj();
+    
+    // Reset the bird sprite
+    bird = setBirdSprite();
+    
+    //Setup pipes
+    pipesGenerator();
+    
+    //Call In Game loop fucntion #start()
+    ham_StopIntHandler(INT_TYPE_VBL);
+    ham_StartIntHandler(INT_TYPE_VBL,(void*)&start);
+    return;
+}//End startGame() function
+
+
+//Function RenderMenu drawn the sprites of main menu
+void renderMenu(){
+    // Create the sprite and store the object number
+    bird = setBirdSprite();
+
+    //Menu Sprites
+    ham_CreateObj((void*)flappy_name_Bitmap, OBJ_SIZE_64X32 , OBJ_MODE_NORMAL,1,0,0,0,0,0,0,70,20);
+    ham_CreateObj((void*)bird_name_Bitmap, OBJ_SIZE_64X32 , OBJ_MODE_NORMAL,1,0,0,0,0,0,0, (70+50),20);
+    ham_CreateObj((void*)btn_start_Bitmap, OBJ_SIZE_32X16 , OBJ_MODE_NORMAL,1,0,0,0,0,0,0,104,72);
+    ham_CreateObj((void*)pointer_Bitmap, OBJ_SIZE_16X16 , OBJ_MODE_NORMAL,1,0,0,0,0,0,0,112,90);
+    
+    // Copy sprites to hardware
+    ham_CopyObjToOAM();
+    return;
+}
+
+
+void gameOver(){//Reset the game
+
+    ham_DeleteObj(bird);
+
+    //Reset sprite to initial coordinates
+    bird_x = 110;
+    bird_y = 50;
+    
+    rand_pipe_y[0] = 0;
+    rand_pipe_y[1] = -32;
+    rand_pipe_y[2] = -16;
+    
+    rand_pipe_x[0] = 240;
+    rand_pipe_x[1] = 240 + 90;
+    rand_pipe_x[2] = 240 + 180;
+    
+    
+    //Call main menu loop
+    in_menu = 1;
+    renderMenu();
+    ham_StartIntHandler(INT_TYPE_VBL,(void*)&mainMenu);
+    return;
+}
+
+
+void start(){
     
     query_buttons(); // Query for input
     
@@ -122,12 +193,14 @@ void vbl_func(){
         pipesMover(); // Move pipe from right to left
         update_bird(); // Apply bird's new position
 
-        checkCollisions();//Check if bird cillided to other elements;
+        if( checkCollisions() ){//Check if bird cillided to other elements;
+            //If so, reset the game, call main fucntion;
+            ham_StopIntHandler(INT_TYPE_VBL);
+            gameOver();
+            return;
+        };
 
         moveGround(); //Move Ground
-
-        // Rotate the background
-    	//ham_RotBgEx(0,frames%360,120,80,scrollx,scrolly,zoomx,zoomy);
 
         ++frames; // Increment the frame counter
 
@@ -141,8 +214,25 @@ void vbl_func(){
     }
 } // End of vbl_func()
 
-void query_buttons(){
+void mainMenu(){
     
+    ++frames;
+
+    //Animate the bird
+    update_bird_gfx();
+    
+    // Query for input
+    query_buttons();
+    
+    //Move selector
+    
+    //Enter Selected Option
+    return;
+}
+
+
+void query_buttons(){
+
     // Query Pad to see in what direction
     // the map should be scrolled
     if(F_CTRLINPUT_LEFT_PRESSED)
@@ -165,9 +255,13 @@ void query_buttons(){
       --bird_y;
     }
     if (F_CTRLINPUT_START_PRESSED) {
-    	paused = !paused;//Pause and Unpause
+        if(in_menu){
+            startGame();
+        }else{
+            paused = !paused;//Pause and Unpause
+        }
 	}
-    
+
     if(F_CTRLINPUT_A_PRESSED)
     {
         if (bird_y > 0){
@@ -181,6 +275,14 @@ void query_buttons(){
 
     return;
 } // End of query_buttons()
+
+
+int setBirdSprite(){
+    // Create the sprite and store the object number
+    return ham_CreateObj((void*)flappy_up_Bitmap, OBJ_SIZE_16X16 , OBJ_MODE_NORMAL,1,0,0,0,0,0,0,110,50);
+}//End setBirdSprite function
+
+
 
 void setBackGrounds(){
     // Setup the background mode
@@ -220,10 +322,15 @@ void moveGround(){
     return;
 }
 
+
+
 void update_bird(){
     ham_SetObjXY(bird,bird_x,bird_y);
     return;
 }
+
+
+
 void move_bird(){
     // Check if 5 VBLs have passed
     if (frames == 1) {
@@ -232,6 +339,8 @@ void move_bird(){
     update_bird();
     return;
 }
+
+
 void pipesGenerator(){
     // Create the sprite and store the object number
     pipeDownSpt0 = ham_CreateObj((void*)pipe_down_Bitmap, OBJ_SIZE_32X64 , OBJ_MODE_NORMAL ,1,0,0,0,0,1,0,rand_pipe_x[0], 0);
@@ -328,7 +437,7 @@ int collided(
     return x1 < ( x2 + w2 ) && x2 < (x1 + w1) && y1 < ( y2 + h2 ) && y2 < ( y1 + h1 );
 }
 
-void checkCollisions(){
+int checkCollisions(){
      if(
         collided( bird_x, bird_y + 2, 16, 12, rand_pipe_x[0] + 3, rand_pipe_y[0], 26, 64) ||
         collided( bird_x, bird_y + 2, 16, 12, rand_pipe_x[1] + 3, rand_pipe_y[1], 26, 64) ||
@@ -340,9 +449,9 @@ void checkCollisions(){
         
         bird_y >= 115
     ){
-        ham_DrawText(0,0,"Colided!");
+        return 1;
     }else{
-        ham_DrawText(0,0,"Not Colided!");
+        return 0;
     }
 }
 
