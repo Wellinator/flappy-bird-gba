@@ -21,13 +21,10 @@ This is what I've been coding for...
 # Screenshots
 
 **Main Menu**
-
-![Main menu image](https://github.com/wellcoj/flappy-bird-gba/blob/master/screenshots/menu.png?raw=true)
-
- - 
+![Main menu image](https://github.com/Wellinator/flappy-bird-gba/blob/master/screenshots/menu.png?raw=true)
 
 **In game**
-![Main menu image](https://github.com/wellcoj/flappy-bird-gba/blob/master/screenshots/gameplay.gif?raw=true)
+![Main menu image](https://github.com/Wellinator/flappy-bird-gba/blob/master/screenshots/gameplay.gif?raw=true)
 
 ## That's all folks
 E-mail: wellcoj@gmail.com
