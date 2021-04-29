@@ -49,7 +49,7 @@ include $(HAMDIR)/system/master.mak
 #
 # Set the name of your desired GBA image name here
 #
-PROGNAME=FlappyBird
+PROGNAME=../dist/FlappyBird
 
 #
 # Compile using Krawall software (set to yes or no) ?
@@ -57,17 +57,19 @@ PROGNAME=FlappyBird
 #
 USE_KRAWALL=no
 KRAWALL_IS_REGISTERED=no
-KRAWALL_FILES=
+KRAWALL_FILES= 
 
 #
 # Set a list of files you want to compile
 #
-OFILES += main.o
+OFILES += main.o 
 
 ##########################################################################################
 # Standard Makefile targets start here
 ##########################################################################################
 all : $(PROGNAME).$(EXT) clean
+
+sfx_die.o: 
 
 #
 # Most Makefile targets are predefined for you, suchas

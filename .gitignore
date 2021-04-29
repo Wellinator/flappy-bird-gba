@@ -1,2 +1,23 @@
-FlappyBird.elf
-FlappyBird.gba
+#Folders
+.dist/
+.cproject
+.dep/
+.project
+.settings/
+
+#files being edited
+*~
+
+# make and build files
+*.lst
+*.o
+*.eep
+*.lss
+*.map
+*.sym
+*.vho
+*.ini
+*.bak
+*.layout
+*.s
+*.vhw
